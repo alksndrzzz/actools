@@ -60,15 +60,18 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
         #region Methods
         public void SetFirstRowViewItemIndex(int index) {
-            SetVerticalOffset(index / Math.Floor(_viewport.Width / _childSize.Width));
-            SetHorizontalOffset(index / Math.Floor(_viewport.Height / _childSize.Height));
+            if (Orientation == Orientation.Horizontal) {
+                SetHorizontalOffset(index / Math.Max(1d, Math.Floor(_viewport.Height / Math.Max(1d, _childSize.Height))));
+            } else {
+                SetVerticalOffset(index / Math.Max(1d, Math.Floor(_viewport.Width / Math.Max(1d, _childSize.Width))));
+            }
         }
 
         private void Resizing(object sender, EventArgs e) {
             if (Equals(_viewport.Width, 0d)) return;
             var firstIndexCache = _firstIndex;
             _abstractPanel = null;
-            MeasureOverride(_viewport);
+            InvalidateMeasure();
             SetFirstRowViewItemIndex(_firstIndex);
             _firstIndex = firstIndexCache;
         }
@@ -489,7 +492,10 @@ namespace FirstFloor.ModernUI.Windows.Controls {
                 itemIndex = gen.IndexFromContainer(element);
             }
 
-            var elementRect = _realizedChildLayout[element];
+            if (!_realizedChildLayout.TryGetValue(element, out var elementRect)) {
+                return default;
+            }
+            
             if (Orientation == Orientation.Horizontal) {
                 var viewportHeight = _pixelMeasuredViewport.Height;
                 if (elementRect.Bottom > viewportHeight) {
@@ -603,7 +609,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
             public int SectionIndex {
                 get {
                     if (_sectionIndex == -1) {
-                        return Index % _panel.AverageItemsPerSection - 1;
+                        return Index % (_panel.AverageItemsPerSection - 1);
                     }
                     return _sectionIndex;
                 }

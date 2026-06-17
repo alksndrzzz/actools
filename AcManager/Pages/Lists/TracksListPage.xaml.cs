@@ -37,12 +37,6 @@ namespace AcManager.Pages.Lists {
                 : base(TracksManager.Instance, listFilter) {
             }
 
-            protected override IEnumerable<SortingDesc> GetAdditionalSortingTypes() {
-                yield return BuildSortingStr("Country", true, nameof(TrackObject.Country), c => c.Country, c=> c.Country);
-                yield return BuildSortingNum("Last used", false, nameof(TrackObject.LastUsedAt), c => -c.LastUsedAt.ToUnixTimestamp(), null);
-                yield return BuildSortingNum("Driven distance", false, nameof(TrackObject.TotalDrivenDistance), c => -c.TotalDrivenDistance, null);
-            }
-
             protected override string GetSubject() {
                 return AppStrings.List_Tracks;
             }

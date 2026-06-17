@@ -320,7 +320,6 @@
     <Compile Include="Helpers\IFinishableControl.cs" />
     <Compile Include="ViewModels\AcListPageViewModel.cs" />
     <Compile Include="ViewModels\AcObjectListCollectionViewWrapper.cs" />
-    <Compile Include="ViewModels\AcObjectSorter.cs" />
     <Compile Include="ViewModels\AiLimitationDetails.cs" />
     <Compile Include="ViewModels\AiLimitationTyre.cs" />
     <Compile Include="ViewModels\AssistsViewModel.cs" />
@@ -328,11 +327,18 @@
     <Compile Include="ViewModels\AssistsViewModelBase.cs" />
     <Compile Include="ViewModels\CupViewModel.cs" />
     <Compile Include="ViewModels\DiapasonMapper.cs" />
+    <Compile Include="ViewModels\IAcListPageViewModel.cs" />
     <Compile Include="ViewModels\RaceGridEntry.cs" />
     <Compile Include="ViewModels\RaceGridMode.cs" />
     <Compile Include="ViewModels\RaceGridPlayerEntry.cs" />
     <Compile Include="ViewModels\RaceGridViewModel.cs" />
     <Compile Include="ViewModels\RealismLevel.cs" />
+    <Compile Include="ViewModels\Sorting\AcListSortingHelper.cs" />
+    <Compile Include="ViewModels\Sorting\SortingMethodsProvider.cs" />
+    <Compile Include="ViewModels\Sorting\AcObjectSorter.cs" />
+    <Compile Include="ViewModels\Sorting\CarsListSortingMethodsProvider.cs" />
+    <Compile Include="ViewModels\Sorting\ISortingContextMenuFactory.cs" />
+    <Compile Include="ViewModels\Sorting\TracksListSortingMethodsProvider.cs" />
     <Compile Include="ViewModels\TrackStatesHelper.cs" />
     <Compile Include="ViewModels\TrackStateViewModel.cs" />
     <Compile Include="ViewModels\TrackStateViewModelBase.cs" />

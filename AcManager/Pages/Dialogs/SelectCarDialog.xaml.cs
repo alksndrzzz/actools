@@ -437,5 +437,10 @@ namespace AcManager.Pages.Dialogs {
             var list = (Tabs.Frame.Content as FrameworkElement)?.FindVisualChild<ListBox>();
             list?.ScrollIntoView(list.SelectedItem);
         }
+
+        private void OnContextMenuClick(object sender, ContextMenuButtonEventArgs e) {
+            var button = (ContextMenuButton)sender;
+            button.Menu = Tabs.FindVisualChild<AcObjectListBox>()?.BuildSortingMenu();
+        }
     }
 }

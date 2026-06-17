@@ -2,9 +2,8 @@ using System;
 using System.Collections;
 using AcManager.Tools.AcManagersNew;
 using AcManager.Tools.AcObjectsNew;
-using FirstFloor.ModernUI.Presentation;
 
-namespace AcManager.Controls.ViewModels {
+namespace AcManager.Controls.ViewModels.Sorting {
     public abstract class AcObjectSorter<T> : IComparer where T : AcObjectNew {
         private bool _usePaddingForChildObjects;
 

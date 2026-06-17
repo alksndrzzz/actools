@@ -7,11 +7,15 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using AcManager.Controls.ViewModels.Sorting;
 using AcManager.Tools.AcManagersNew;
 using AcManager.Tools.AcObjectsNew;
 using AcManager.Tools.Filters;
 using AcManager.Tools.Lists;
+using AcManager.Tools.Managers;
+using AcManager.Tools.Objects;
 using AcTools.Utils;
+using FirstFloor.ModernUI.Helpers;
 using FirstFloor.ModernUI.Serialization;
 using JetBrains.Annotations;
 using StringBasedFilter;
@@ -91,6 +95,14 @@ namespace AcManager.Controls {
         public string UserFiltersKey {
             get => (string)GetValue(UserFiltersKeyProperty);
             set => SetValue(UserFiltersKeyProperty, value);
+        }
+
+        public static readonly DependencyProperty SortKeyProperty = DependencyProperty.Register(nameof(SortKey), typeof(string),
+                typeof(AcObjectListBox), new PropertyMetadata((string)null));
+
+        public string SortKey {
+            get => (string)GetValue(SortKeyProperty);
+            set => SetValue(SortKeyProperty, value);
         }
 
         private static void OnFilterChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
@@ -214,7 +226,8 @@ namespace AcManager.Controls {
             _observableCollection = newValue;
             if (newValue == null) return;
 
-            InnerItemsSource = new AcWrapperCollectionView(_observableCollection) { CustomSort = this };
+            _sortingSortingMenuFactory = null;
+            InnerItemsSource = new AcWrapperCollectionView(_observableCollection) { CustomSort = InnerItemsSource?.CustomSort ?? this };
             InnerItemsSource.CurrentChanged += OnItemsSourceCurrentChanged;
             UpdateFilter();
         }
@@ -235,9 +248,21 @@ namespace AcManager.Controls {
 
             var baseFilter = BasicFilter;
             var userFilter = UserFilter;
-
             var filter = string.IsNullOrWhiteSpace(baseFilter) ? userFilter
                     : string.IsNullOrWhiteSpace(userFilter) ? baseFilter : baseFilter + @" & (" + userFilter + @")";
+
+            if (_sortingSortingMenuFactory == null) {
+                void SetSortingImpl(IComparer created) {
+                    InnerItemsSource.CustomSort = created;
+                }
+                if (_observableCollection == CarsManager.Instance.WrappersList) {
+                    _sortingSortingMenuFactory = AcListSortingHelper.Create<CarObject>(SortKey, SetSortingImpl);
+                } else if (_observableCollection == TracksManager.Instance.WrappersList) {
+                    _sortingSortingMenuFactory = AcListSortingHelper.Create<TrackObject>(SortKey, SetSortingImpl);
+                } else {
+                    _sortingSortingMenuFactory = AcListSortingHelper.Create<AcObjectNew>(SortKey, SetSortingImpl);
+                }
+            }
 
             InnerItemsSource.CurrentChanged -= OnItemsSourceCurrentChanged;
             using (listView.DeferRefresh()) {
@@ -257,6 +282,12 @@ namespace AcManager.Controls {
             InnerItemsSource.CurrentChanged += OnItemsSourceCurrentChanged;
 
             listView.MoveCurrentToOrNull(selectObject);
+        }
+
+        private ISortingContextMenuFactory _sortingSortingMenuFactory;
+        
+        public ContextMenu BuildSortingMenu() {
+            return _sortingSortingMenuFactory?.BuildListContextMenu(() => InnerItemsSource.OfType<AcItemWrapper>(), null);
         }
 
         private void UpdateFilter() {

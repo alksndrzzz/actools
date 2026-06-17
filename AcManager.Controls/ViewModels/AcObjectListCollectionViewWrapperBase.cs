@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
+using AcManager.Controls.ViewModels.Sorting;
 using AcManager.Tools.AcManagersNew;
 using AcManager.Tools.AcObjectsNew;
 using AcManager.Tools.Lists;

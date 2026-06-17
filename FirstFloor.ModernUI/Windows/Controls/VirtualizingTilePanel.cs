@@ -77,12 +77,31 @@ namespace FirstFloor.ModernUI.Windows.Controls {
             _itemHeight;
 
         private Size DetectItemSize(Size limitation) {
-            var generatorStartPosition = _itemsGenerator.GeneratorPositionFromIndex(0);
-            using (_itemsGenerator.StartAt(generatorStartPosition, GeneratorDirection.Forward, true)) {
+            if (!_itemsControl.HasItems) {
+                return new Size(
+                        double.IsInfinity(limitation.Width) ? 0 : limitation.Width,
+                        double.IsInfinity(limitation.Height) ? 0 : limitation.Height);
+            }
+            
+            var startPos = _itemsGenerator.GeneratorPositionFromIndex(0);
+            using (_itemsGenerator.StartAt(startPos, GeneratorDirection.Forward, allowStartAtRealizedItem: false)) {
                 var child = (UIElement)_itemsGenerator.GenerateNext(out _);
+                if (child == null) {
+                    return Size.Empty;
+                }
                 _itemsGenerator.PrepareItemContainer(child);
                 child.Measure(limitation);
-                return child.DesiredSize;
+                var size = child.DesiredSize;
+                // Tear down the probe container so the main layout pass starts clean
+                var recyclePos = _itemsGenerator.GeneratorPositionFromIndex(0);
+                if (recyclePos.Index >= 0) {
+                    _itemsGenerator.Recycle(recyclePos, 1);
+                }
+                var index = InternalChildren.IndexOf(child);
+                if (index >= 0) {
+                    RemoveInternalChildRange(index, 1);
+                }
+                return size;
             }
         }
 
@@ -246,7 +265,10 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         private void RecycleItems(ItemLayoutInfo layoutInfo) {
             foreach (UIElement child in Children) {
                 var virtualItemIndex = GetVirtualItemIndex(child);
-
+                if (virtualItemIndex < 0) {
+                    continue;
+                }
+                
                 var cacheLength = GetCacheLength(this);
                 var cacheUnit = GetCacheLengthUnit(this);
 
@@ -271,15 +293,16 @@ namespace FirstFloor.ModernUI.Windows.Controls {
                     if (generatorPosition.Index >= 0) {
                         _itemsGenerator.Recycle(generatorPosition, 1);
                     }
+                    SetVirtualItemIndex(child, -1);
                 }
-
-                SetVirtualItemIndex(child, -1);
             }
         }
 
         protected override Size ArrangeOverride(Size finalSize) {
             foreach (UIElement child in Children) {
-                child.Arrange(_childLayouts[child]);
+                if (_childLayouts.TryGetValue(child, out var childLayout)) {
+                    child.Arrange(childLayout);
+                }
             }
             return finalSize;
         }
@@ -371,11 +394,11 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         }
 
         public void LineLeft() {
-            SetHorizontalOffset(HorizontalOffset + ScrollLineAmount);
+            SetHorizontalOffset(HorizontalOffset - ScrollLineAmount);
         }
 
         public void LineRight() {
-            SetHorizontalOffset(HorizontalOffset - ScrollLineAmount);
+            SetHorizontalOffset(HorizontalOffset + ScrollLineAmount);
         }
 
         public void PageUp() {
@@ -387,11 +410,11 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         }
 
         public void PageLeft() {
-            SetHorizontalOffset(HorizontalOffset + _itemWidth);
+            SetHorizontalOffset(HorizontalOffset - _itemWidth);
         }
 
         public void PageRight() {
-            SetHorizontalOffset(HorizontalOffset - _itemWidth);
+            SetHorizontalOffset(HorizontalOffset + _itemWidth);
         }
 
         public void MouseWheelUp() {

@@ -47,18 +47,17 @@ namespace AcManager.Pages.Miscellaneous {
         public IAcWrapperObservableCollection MainList { get; private set; }
 
         public void OnUri(Uri uri) {
-            Title = uri.GetQueryParam("Title");
-
             var type = uri.GetQueryParam("Type");
             MainList = type == @"track" ? TracksManager.Instance.WrappersList
                     : type == @"car" ? CarsManager.Instance.WrappersList
                             : type == @"showroom" ? ShowroomsManager.Instance.WrappersList : null;
+            Title = uri.GetQueryParam("Title");
             Filter = uri.GetQueryParam("Filter");
-
             DataContext = this;
             InitializeComponent();
 
             List.UserFiltersKey = $@"AcObjectListBox:FiltersHistory:{type}";
+            List.SortKey = $@"AcObjectListBox:Sort:{type}:{Filter}";
             SaveScroll.SetKey(List, $@".AcObjectSelectList.scroll:{type}:{Filter}");
         }
 

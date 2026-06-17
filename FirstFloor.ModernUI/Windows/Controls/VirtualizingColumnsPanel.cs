@@ -154,8 +154,9 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         #region Layout specific code
         private void GetVisibleRange(out int firstVisibleItemIndex, out int lastVisibleItemIndex) {
             var itemCount = _itemsControl.HasItems ? _itemsControl.Items.Count : 0;
-            firstVisibleItemIndex = Math.Min(Math.Max((int)Math.Floor(_offset.Y / ItemHeight) * Columns, 0), itemCount - 1);
-            lastVisibleItemIndex = Math.Min(firstVisibleItemIndex + ((int)Math.Ceiling(_viewport.Height / ItemHeight) + 1) * Columns, itemCount - 1);
+            var itemHeight = Math.Max(ItemHeight, 1d);
+            firstVisibleItemIndex = Math.Min(Math.Max((int)Math.Floor(_offset.Y / itemHeight) * Columns, 0), itemCount - 1);
+            lastVisibleItemIndex = Math.Min(firstVisibleItemIndex + ((int)Math.Ceiling(_viewport.Height / itemHeight) + 1) * Columns, itemCount - 1);
         }
 
         private static int GetItemRow(int itemIndex, int itemPerRow) {
@@ -204,11 +205,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         private double GetTotalHeight() {
             var itemCount = _itemsControl.HasItems ? _itemsControl.Items.Count : 0;
             var rows = Math.Ceiling((double)itemCount / Columns);
-            double totalHeight = 0;
-            for (var i = 0; i < rows; i++) {
-                totalHeight += ItemHeight;
-            }
-            return totalHeight;
+            return rows * ItemHeight;
         }
 
         private double _previousWidth;
@@ -293,6 +290,8 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
         public Rect MakeVisible(Visual visual, Rect rectangle) {
             var index = GeneratorContainer.IndexFromContainer(visual);
+            if (index == -1) return Rect.Empty;
+            
             var row = GetItemRow(index, Columns);
             var offset = ItemHeight * row;
             var offsetSize = offset + ItemHeight;
