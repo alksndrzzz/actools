@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using AcTools.Utils.Helpers;
 using FirstFloor.ModernUI.Helpers;
 using FirstFloor.ModernUI.Presentation;
 using JetBrains.Annotations;
@@ -299,10 +300,15 @@ namespace AcManager.Tools.Profile {
             [JsonIgnore]
             public double TotalTyreWearRounded => Math.Floor(TotalTyreWear * OptionTyreWearScale);
 
-            private void UpdateMaxDistancePerCar([NotNull] SessionStats session) {
+            private void UpdateMaxDistancePerCar([NotNull] SessionStats session, long sessionTimestamp) {
                 var drivenDistance = Storage.Get(KeyDistancePerCarPrefix + session.CarId, 0d) + session.Distance;
                 Storage.Set(KeyDistancePerCarPrefix + session.CarId, drivenDistance);
 
+                var lastUsed = Storage.Get(KeyLastUsedCarPrefix + session.CarId, 0L);
+                if (sessionTimestamp > lastUsed) {
+                    Storage.Set(KeyLastUsedCarPrefix + session.CarId, sessionTimestamp);
+                }
+                
                 if (session.CarId == MaxDistancePerCarCarId) {
                     MaxDistancePerCar += session.Distance;
                 } else if (drivenDistance > MaxDistancePerCar) {
@@ -311,9 +317,14 @@ namespace AcManager.Tools.Profile {
                 }
             }
 
-            private void UpdateMaxDistancePerTrack([NotNull] SessionStats session) {
+            private void UpdateMaxDistancePerTrack([NotNull] SessionStats session, long sessionTimestamp) {
                 var drivenDistance = Storage.Get(KeyDistancePerTrackPrefix + session.TrackId, 0d) + session.Distance;
                 Storage.Set(KeyDistancePerTrackPrefix + session.TrackId, drivenDistance);
+
+                var lastUsed = Storage.Get(KeyLastUsedTrackPrefix + session.TrackId, 0L);
+                if (sessionTimestamp > lastUsed) {
+                    Storage.Set(KeyLastUsedTrackPrefix + session.TrackId, sessionTimestamp);
+                }
 
                 if (session.TrackId == MaxDistancePerTrackTrackId) {
                     MaxDistancePerTrack += session.Distance;
@@ -334,8 +345,9 @@ namespace AcManager.Tools.Profile {
                     return;
                 }
 
-                UpdateMaxDistancePerCar(session);
-                UpdateMaxDistancePerTrack(session);
+                var sessionTimestamp = session.StartedAt.ToUnixTimestamp();
+                UpdateMaxDistancePerCar(session, sessionTimestamp);
+                UpdateMaxDistancePerTrack(session, sessionTimestamp);
 
                 /* max speed per car */
                 if (session.MaxSpeed > Storage.Get(KeyMaxSpeedPerCarPrefix + session.CarId, 0d)) {

@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using AcManager.Tools.Profile;
 using FirstFloor.ModernUI.Commands;
 using FirstFloor.ModernUI.Dialogs;
@@ -29,6 +30,18 @@ namespace AcManager.Tools.Objects {
             OnPropertyChanged(nameof(MaxSpeedAchieved));
         }
 
+        private DateTime? _lastUsedAt;
+
+        public DateTime LastUsedAt => _lastUsedAt ?? (_lastUsedAt = PlayerStatsManager.Instance.GetLastUsedCar(Id)).Value;
+
+        public bool LastUsedSet => LastUsedAt.Year > 1971;
+
+        public void RaiseLastUsedChanged() {
+            _lastUsedAt = null;
+            OnPropertyChanged(nameof(LastUsedAt));
+            OnPropertyChanged(nameof(LastUsedSet));
+        }
+
         private AsyncCommand _clearStatsCommand;
 
         public AsyncCommand ClearStatsCommand => _clearStatsCommand ?? (_clearStatsCommand = new AsyncCommand(async () => {
@@ -36,8 +49,9 @@ namespace AcManager.Tools.Objects {
                     != MessageBoxResult.Yes) return;
             using (WaitingDialog.Create("Clearing and rebuilding…")) {
                 await PlayerStatsManager.Instance.RemoveCarAsync(Id);
-                RaiseMaxSpeedAchievedChanged();
                 RaiseTotalDrivenDistanceChanged();
+                RaiseMaxSpeedAchievedChanged();
+                RaiseLastUsedChanged();
             }
         }));
     }

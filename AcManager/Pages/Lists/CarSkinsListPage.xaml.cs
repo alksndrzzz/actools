@@ -75,7 +75,7 @@ namespace AcManager.Pages.Lists {
         public CarSkinsListPage() { }
 
         private void OnLoaded(object sender, RoutedEventArgs e) {
-            ((ViewModel)DataContext).Load();
+            ((ViewModel)DataContext).Load(this);
             if (((ViewModel)DataContext).MainList.Count > 20){
                 FancyHints.MultiSelectionMode.Trigger();
             }

@@ -216,6 +216,17 @@ namespace AcManager.Controls {
         public static readonly DependencyProperty NarrowListProperty = DependencyProperty.RegisterAttached("NarrowList", typeof(bool),
                 typeof(AcListPage), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.Inherits));
 
+        public static bool GetUsePaddingForChildObjects(DependencyObject obj) {
+            return obj.GetValue(UsePaddingForChildObjectsProperty) as bool? == true;
+        }
+
+        public static void SetUsePaddingForChildObjects(DependencyObject obj, bool value) {
+            obj.SetValue(UsePaddingForChildObjectsProperty, value);
+        }
+
+        public static readonly DependencyProperty UsePaddingForChildObjectsProperty = DependencyProperty.RegisterAttached("UsePaddingForChildObjects", typeof(bool),
+                typeof(AcListPage), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.Inherits));
+
         private bool _batchActionsSet;
 
         private void SetMultiSelectionMode(bool? newValue = null) {

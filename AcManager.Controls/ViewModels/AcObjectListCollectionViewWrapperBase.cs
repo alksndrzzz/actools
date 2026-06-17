@@ -16,8 +16,8 @@ using StringBasedFilter;
 
 namespace AcManager.Controls.ViewModels {
     public interface IAcObjectListCollectionViewWrapper {
-        void Load();
-        void Unload();
+        bool Load([CanBeNull] AcListPage listPage);
+        bool Unload();
     }
 
     public abstract class AcObjectListCollectionViewWrapperBase<T> : NotifyPropertyChanged, IAcObjectListCollectionViewWrapper, IComparer where T : AcObjectNew {
@@ -27,7 +27,8 @@ namespace AcManager.Controls.ViewModels {
         [NotNull]
         private readonly IAcObjectList _list;
 
-        protected readonly IFilter<T> ListFilter;
+        [CanBeNull]
+        private readonly IFilter<T> _listFilter;
 
         [NotNull]
         private readonly AcWrapperCollectionView _mainList;
@@ -36,9 +37,8 @@ namespace AcManager.Controls.ViewModels {
         public AcWrapperCollectionView MainList {
             get {
                 if (!Loaded) {
-                    Load();
+                    Load(null);
                 }
-
                 return _mainList;
             }
         }
@@ -52,7 +52,7 @@ namespace AcManager.Controls.ViewModels {
             _manager = manager ?? throw new ArgumentNullException(nameof(manager));
             _list = _manager.WrappersAsIList;
             _mainList = new AcWrapperCollectionView(_list);
-            ListFilter = listFilter;
+            _listFilter = listFilter;
             _allowNonSelected = allowNonSelected;
         }
 
@@ -82,30 +82,66 @@ namespace AcManager.Controls.ViewModels {
         [CanBeNull]
         public delegate string GroupByConverter([CanBeNull] string input);
 
-        public void GroupBy(string propertyName, GroupByConverter converter) {
+        public void GroupBy([NotNull] string propertyName, [NotNull] GroupByConverter converter) {
             _groupByPropertyName = propertyName;
             _groupByConverter = converter;
-
             if (Loaded) {
                 SetGrouping();
             }
         }
 
-        public void GroupBy(string propertyName, GroupDescription description) {
+        public void GroupBy([NotNull] string propertyName, [NotNull] GroupDescription description) {
             _groupByPropertyName = propertyName;
             _groupDescription = description;
+            if (Loaded) {
+                SetGrouping();
+            }
+        }
 
+        public void GroupBy([CanBeNull] string propertyName, [CanBeNull] Func<T, string> groupNameFactory) {
+            _groupByPropertyName = propertyName;
+            _groupDescription = propertyName == null ? null : new CallbackGroupDescription(groupNameFactory);
+            if (Loaded) {
+                SetGrouping();
+            }
+        }
+
+        private class CallbackGroupDescription : GroupDescription {
+            private Func<T, string> _groupNameFactory;
+            
+            public CallbackGroupDescription(Func<T, string> groupNameFactory) {
+                _groupNameFactory = groupNameFactory;
+            }
+
+            public override object GroupNameFromItem(object item, int level, CultureInfo culture) {
+                string ret = null;
+                if ((item as AcItemWrapper)?.Value is T t) ret = _groupNameFactory(t);
+                return string.IsNullOrEmpty(ret) ? @"?" : ret;
+            }
+        }
+
+        public void ResetGroping() {
+            _groupByPropertyName = null;
+            _groupDescription = null;
             if (Loaded) {
                 SetGrouping();
             }
         }
 
         private void SetGrouping() {
-            if (_groupByPropertyName == null || _grouped) return;
+            if (_groupByPropertyName == null || _grouped) {
+                if (_groupByPropertyName == null && _grouped) {
+                    _grouped = false;
+                    MainList.GroupDescriptions?.Clear();
+                }
+                UpdateItemsMonitoring();
+                return;
+            }
             _grouped = true;
             MainList.GroupDescriptions?.Add(_groupDescription ?? new PropertyGroupDescription(
                     $@"Value.{_groupByPropertyName}",
                     _groupByConverter == null ? null : new ToGroupNameConverter(_groupByConverter)));
+            UpdateItemsMonitoring();
         }
 
         private class ToGroupNameConverter : IValueConverter {
@@ -124,43 +160,71 @@ namespace AcManager.Controls.ViewModels {
             }
         }
 
+        private AcListPage _listPage;
+        private bool _usePaddingForChildObjects = true;
+
+        public bool UsePaddingForChildObjects {
+            get => _usePaddingForChildObjects;
+            set => Apply(value, ref _usePaddingForChildObjects, () => {
+                if (_listPage != null) {
+                    AcListPage.SetUsePaddingForChildObjects(_listPage, _usePaddingForChildObjects);
+                }
+            });
+        }
+
         protected bool Loaded { get; private set; }
 
-        private bool _second;
+        private bool _loadedOnce;
+        private bool _monitoringItems;
+
+        private void UpdateItemsMonitoring(bool forceDisabled = false) {
+            var needsMonitoring = !forceDisabled && (_listFilter != null || _grouped || _sorting != null);
+            if (needsMonitoring == _monitoringItems) return;
+            _monitoringItems = needsMonitoring;
+            if (needsMonitoring) {
+                _list.ItemPropertyChanged += OnItemPropertyChanged;
+                _list.WrappedValueChanged += OnWrapperValueChanged;
+            } else {
+                _list.ItemPropertyChanged -= OnItemPropertyChanged;
+                _list.WrappedValueChanged -= OnWrapperValueChanged;
+            }
+        }
 
         /// <summary>
         /// Don’t forget to use me!
         /// </summary>
-        public virtual void Load() {
-            if (Loaded) return;
-            Loaded = true;
-
-            SetGrouping();
-
-            if (ListFilter != null || _grouped) {
-                _list.ItemPropertyChanged += OnItemPropertyChanged;
-                _list.WrappedValueChanged += OnWrapperValueChanged;
+        public virtual bool Load(AcListPage listPage) {
+            _listPage = listPage;
+            if (listPage != null) {
+                AcListPage.SetUsePaddingForChildObjects(listPage, _usePaddingForChildObjects);
             }
+
+            if (Loaded) return false;
+            Loaded = true;
+            _listPage = listPage;
 
             _list.CollectionChanged += OnCollectionChanged;
             _list.CollectionReady += OnCollectionReady;
+            SetGrouping();
 
-            if (_second) return;
-            _second = true;
+            if (!_loadedOnce) {
+                _loadedOnce = true;
 
-            using (_mainList.DeferRefresh()) {
-                if (ListFilter == null) {
-                    _mainList.Filter = null;
-                } else {
-                    _mainList.Filter = FilterTest;
+                using (_mainList.DeferRefresh()) {
+                    if (_listFilter == null) {
+                        _mainList.Filter = null;
+                    } else {
+                        _mainList.Filter = FilterTest;
+                    }
+
+                    _mainList.CustomSort = SortingComparer;
                 }
 
-                _mainList.CustomSort = SortingComparer;
+                LoadCurrent();
+                _oldNumber = _mainList.Count;
+                _mainList.CurrentChanged += OnCurrentChanged;
             }
-
-            LoadCurrent();
-            _oldNumber = _mainList.Count;
-            _mainList.CurrentChanged += OnCurrentChanged;
+            return true;
         }
 
         [NotNull]
@@ -177,6 +241,7 @@ namespace AcManager.Controls.ViewModels {
 
                 if (Loaded) {
                     _mainList.CustomSort = SortingComparer;
+                    UpdateItemsMonitoring();
                 }
             }
         }
@@ -184,17 +249,19 @@ namespace AcManager.Controls.ViewModels {
         /// <summary>
         /// Don’t forget to use me!
         /// </summary>
-        public virtual void Unload() {
-            if (!Loaded) return;
+        public virtual bool Unload() {
+            if (!Loaded) return false;
             Loaded = false;
 
-            if (ListFilter != null || _grouped) {
+            if (_monitoringItems) {
+                _monitoringItems = false;
                 _list.ItemPropertyChanged -= OnItemPropertyChanged;
                 _list.WrappedValueChanged -= OnWrapperValueChanged;
             }
 
             _list.CollectionChanged -= OnCollectionChanged;
             _list.CollectionReady -= OnCollectionReady;
+            return true;
         }
 
         public const string InvalidId = "";
@@ -240,17 +307,19 @@ namespace AcManager.Controls.ViewModels {
                 SaveCurrentKey(obj.Value.Id);
             }
 
-            if (_testMeLater != null) {
-                RefreshFilter(_testMeLater);
+            var testLaterItem = _testMeLater;
+            if (testLaterItem != null) {
+                _testMeLater = null;
+                RefreshFilter(testLaterItem, true);
             }
         }
 
         protected bool FilterTest(AcPlaceholderNew o) {
-            return o is T t && ListFilter.Test(t);
+            return _listFilter == null || o is T t && _listFilter.Test(t);
         }
 
         protected bool FilterTest(object o) {
-            return o is AcItemWrapper t && t.IsLoaded && ListFilter.Test((T)t.Value);
+            return _listFilter == null || o is AcItemWrapper t && t.IsLoaded && _listFilter.Test((T)t.Value);
         }
 
         private int _oldNumber;
@@ -259,7 +328,6 @@ namespace AcManager.Controls.ViewModels {
             if (!Loaded) return;
 
             var newNumber = _mainList.Count;
-
             if (_mainList.CurrentItem == null) {
                 LoadCurrent();
             }
@@ -271,7 +339,7 @@ namespace AcManager.Controls.ViewModels {
 
         private AcItemWrapper _testMeLater;
 
-        private void RefreshFilter(AcPlaceholderNew obj) {
+        private void RefreshFilter(AcPlaceholderNew obj, bool forceRefreshIfFits) {
             if (!Loaded) return;
 
             if (CurrentItem?.Value == obj) {
@@ -279,17 +347,12 @@ namespace AcManager.Controls.ViewModels {
                 return;
             }
 
-            _testMeLater = null;
-
-            var contains = _mainList.OfType<AcItemWrapper>().Any(x => x.Value == obj);
-            var newValue = FilterTest(obj);
-
-            if (contains != newValue) {
+            if (forceRefreshIfFits ? FilterTest(obj) : _mainList.OfType<AcItemWrapper>().Any(x => x.Value == obj) != FilterTest(obj)) {
                 _list.RefreshFilter(obj);
             }
         }
 
-        private void RefreshFilter(AcItemWrapper obj) {
+        private void RefreshFilter(AcItemWrapper obj, bool forceRefreshIfFits) {
             if (!Loaded) return;
 
             if (CurrentItem == obj) {
@@ -297,39 +360,28 @@ namespace AcManager.Controls.ViewModels {
                 return;
             }
 
-            _testMeLater = null;
-
-            var contains = _mainList.Contains(obj);
-            var newValue = FilterTest(obj);
-            if (contains != newValue) {
+            if (forceRefreshIfFits ? FilterTest(obj) : _mainList.Contains(obj) != FilterTest(obj)) {
                 _list.RefreshFilter(obj);
             }
         }
 
         private void OnItemPropertyChanged(object sender, PropertyChangedEventArgs e) {
-            if (_sorting?.IsAffectedBy(e.PropertyName) == true) {
-                _list.RefreshFilter((AcPlaceholderNew)sender);
-                return;
-            }
-
-            if (ListFilter != null) {
-                if (!ListFilter.IsAffectedBy(e.PropertyName)) return;
-                RefreshFilter((AcPlaceholderNew)sender);
+            var needsRefresh = _sorting?.IsAffectedBy(e.PropertyName) == true || _grouped && e.PropertyName == _groupByPropertyName ? 1 : 0;
+            if (_listFilter != null && _listFilter.IsAffectedBy(e.PropertyName)) {
+                if (needsRefresh == 0) needsRefresh = 2;
                 MainListUpdated();
-                return;
             }
-
-            if (_grouped && e.PropertyName == _groupByPropertyName) {
-                _list.RefreshFilter((AcPlaceholderNew)sender);
+            if (needsRefresh != 0) {
+                RefreshFilter((AcPlaceholderNew)sender, needsRefresh == 1);
             }
         }
 
         private void OnWrapperValueChanged(object sender, WrappedValueChangedEventArgs e) {
-            if (ListFilter != null) {
-                RefreshFilter((AcItemWrapper)sender);
+            if (_listFilter != null) {
+                RefreshFilter((AcItemWrapper)sender, true);
                 MainListUpdated();
-            } else if (_grouped && _collectionReady) {
-                _list.RefreshFilter((AcItemWrapper)sender);
+            } else if (_grouped && _collectionReady || _sorting != null) {
+                RefreshFilter((AcItemWrapper)sender, true);
             }
         }
 

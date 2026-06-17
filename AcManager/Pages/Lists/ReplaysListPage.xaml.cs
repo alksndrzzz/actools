@@ -28,7 +28,7 @@ namespace AcManager.Pages.Lists {
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e) {
-            ((ViewModel)DataContext).Load();
+            ((ViewModel)DataContext).Load(this);
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e) {

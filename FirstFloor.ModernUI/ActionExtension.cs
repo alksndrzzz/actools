@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -6,28 +7,41 @@ using JetBrains.Annotations;
 
 namespace FirstFloor.ModernUI {
     public static class ActionExtension {
+        private static Dispatcher GetDispatcher() {
+            return Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        }
+        
         public static void InvokeInMainThread(this Action action) {
-            (Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher).Invoke(action);
+            GetDispatcher().Invoke(action);
         }
 
         public static Task InvokeInMainThreadAsync(this Func<Task> action) {
-            return (Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher).InvokeAsync(action).Task;
+            return GetDispatcher().InvokeAsync(action).Task;
         }
 
         public static Task<T> InvokeInMainThreadAsync<T>(this Func<T> action) {
-            return (Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher).InvokeAsync(action).Task;
+            return GetDispatcher().InvokeAsync(action).Task;
         }
 
         public static T InvokeInMainThread<T>(this Func<T> action) {
-            return (Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher).Invoke(action);
+            return GetDispatcher().Invoke(action);
         }
 
         public static void InvokeInMainThreadAsync(this Action action) {
-            (Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher).InvokeAsync(action);
+            GetDispatcher().InvokeAsync(action);
+        }
+
+        public static void EnsureToRunInMainThreadWhenPossible(this Action action) {
+            var dispatcher = GetDispatcher();
+            if (Thread.CurrentThread == dispatcher.Thread) {
+                action();
+            } else {
+                dispatcher.InvokeAsync(action, DispatcherPriority.Background);
+            }
         }
 
         public static void InvokeInMainThreadAsyncLater(this Action action) {
-            (Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher).InvokeAsync(action, DispatcherPriority.ContextIdle);
+            GetDispatcher().InvokeAsync(action, DispatcherPriority.ContextIdle);
         }
 
         public static Task ContinueWithInMainThread<T>(this Task<T> task, Action<Task<T>> callback, TaskContinuationOptions options = TaskContinuationOptions.None) {

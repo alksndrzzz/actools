@@ -70,7 +70,7 @@ namespace AcManager.Pages.Lists {
         public TrackSkinsListPage() { }
 
         private void OnLoaded(object sender, RoutedEventArgs e) {
-            ((ViewModel)DataContext).Load();
+            ((ViewModel)DataContext).Load(this);
             if (((ViewModel)DataContext).MainList.Count > 20){
                 FancyHints.MultiSelectionMode.Trigger();
             }

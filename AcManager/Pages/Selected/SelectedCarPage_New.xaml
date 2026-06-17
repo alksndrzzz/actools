@@ -464,6 +464,16 @@
                   </FrameworkElement.ContextMenu>
                 </mui:PlaceholderTextBlock>
 
+                <mui:PlaceholderTextBlock c:PropertiesGrid.Label="Last used:" Placeholder="…"
+                    Text="{Binding SelectedObject.LastUsedAt, StringFormat='{}{0:dd/MM/yyyy hh:mm tt}'}"
+                    Visibility="{Binding SelectedObject.LastUsedSet, Converter={StaticResource BooleanToVisibilityConverter}}">
+                  <FrameworkElement.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="{x:Static g:AppStrings.Selected_CarPage_ClearStatsFromThisCar}" Command="{Binding Path=ClearStatsCommand}" />
+                    </ContextMenu>
+                  </FrameworkElement.ContextMenu>
+                </mui:PlaceholderTextBlock>
+
                 <mui:PlaceholderTextBlock c:PropertiesGrid.Label="Speed achieved:" Placeholder="…"
                     Text="{Binding SelectedObject.MaxSpeedAchieved, Converter={StaticResource MultiplyConverter}, ConverterParameter={x:Static t:SettingsHolder+CommonSettings.DistanceMultiplier}, StringFormat={x:Static t:SettingsHolder+CommonSettings.SpeedFormat}}"
                     Visibility="{Binding SelectedObject.MaxSpeedAchieved, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter='≠0'}">

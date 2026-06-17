@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Windows;
 using AcManager.Tools.Profile;
 using FirstFloor.ModernUI.Commands;
@@ -16,6 +17,18 @@ namespace AcManager.Tools.Objects {
             OnPropertyChanged(nameof(TotalDrivenDistanceKm));
         }
 
+        private DateTime? _lastUsedAt;
+
+        public DateTime LastUsedAt => _lastUsedAt ?? (_lastUsedAt = PlayerStatsManager.Instance.GetLastUsedTrack(Id)).Value;
+
+        public bool LastUsedSet => LastUsedAt.Year > 1971;
+
+        public void RaiseLastUsedChanged() {
+            _lastUsedAt = null;
+            OnPropertyChanged(nameof(LastUsedAt));
+            OnPropertyChanged(nameof(LastUsedSet));
+        }
+
         private AsyncCommand _clearStatsCommand;
 
         public AsyncCommand ClearStatsCommand => _clearStatsCommand ?? (_clearStatsCommand = new AsyncCommand(async () => {
@@ -24,6 +37,7 @@ namespace AcManager.Tools.Objects {
             using (WaitingDialog.Create("Clearing and rebuilding…")) {
                 await PlayerStatsManager.Instance.RemoveTrackLayoutAsync(IdWithLayout);
                 RaiseTotalDrivenDistanceChanged();
+                RaiseLastUsedChanged();
             }
         }));
 
@@ -35,6 +49,7 @@ namespace AcManager.Tools.Objects {
             using (WaitingDialog.Create("Clearing and rebuilding…")) {
                 await PlayerStatsManager.Instance.RemoveTrackAsync(Id);
                 RaiseTotalDrivenDistanceChanged();
+                RaiseLastUsedChanged();
             }
         }));
 

@@ -67,8 +67,6 @@ namespace AcManager.Tools.Lists {
         }
 
         public void RefreshFilter([NotNull] AcPlaceholderNew valueObject) {
-            Logging.Debug(valueObject.DisplayName);
-
             var wrapperObject = Items.FirstOrDefault(x => x.Value == valueObject);
             if (wrapperObject == null) {
                 Logging.Warning("Wrapper object is null");

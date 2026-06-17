@@ -49,7 +49,7 @@ namespace AcManager.Pages.Lists {
         private ViewModel Model => (ViewModel)DataContext;
 
         private void OnLoaded(object sender, RoutedEventArgs e) {
-            Model.Load();
+            Model.Load(this);
             FancyHints.DoubleClickToQuickDrive.Trigger();
 
             if (Model.MainList.Count > 20) {
@@ -63,30 +63,14 @@ namespace AcManager.Pages.Lists {
 
         private class ViewModel : AcListPageViewModel<CarObject> {
             public ViewModel(IFilter<CarObject> listFilter)
-                    : base(CarsManager.Instance, listFilter) {
-                // GroupBy(nameof(CarObject.Brand), new BrandGroupDescription());
-            }
+                    : base(CarsManager.Instance, listFilter) { }
 
-            protected override IEnumerable<KeyValuePair<string, Type>> GetSortingTypes() {
-                return base.GetSortingTypes()
-                        .Append(new KeyValuePair<string, Type>("brand", typeof(SortingBrand)));
-            }
-
-            private class SortingBrand : AcObjectSorter<CarObject> {
-                public override int Compare(CarObject x, CarObject y) {
-                    return string.Compare(x.Brand ?? string.Empty, y.Brand ?? string.Empty, StringComparison.OrdinalIgnoreCase);
-                }
-
-                public override bool IsAffectedBy(string propertyName) {
-                    return propertyName == nameof(CarObject.Brand);
-                }
-            }
-
-            private class BrandGroupDescription : GroupDescription {
-                public override object GroupNameFromItem(object item, int level, CultureInfo culture) {
-                    var category = ((item as AcItemWrapper)?.Value as CarObject)?.Brand;
-                    return string.IsNullOrEmpty(category) ? "?" : category;
-                }
+            protected override IEnumerable<SortingDesc> GetAdditionalSortingTypes() {
+                yield return BuildSortingStr("Brand", true, nameof(CarObject.Brand), c => c.Brand, c=> c.Brand);
+                yield return BuildSortingStr("Country", true, nameof(CarObject.Country), c => c.Country, c=> c.Country);
+                yield return BuildSortingNum("Year", false, nameof(CarObject.Year), c => c.Year ?? 9999, c => c.Year?.ToInvariantString() ?? "?");
+                yield return BuildSortingNum("Last used", false, nameof(CarObject.LastUsedAt), c => -c.LastUsedAt.ToUnixTimestamp(), null);
+                yield return BuildSortingNum("Driven distance", false, nameof(CarObject.TotalDrivenDistance), c => -c.TotalDrivenDistance, null);
             }
 
             protected override string GetSubject() {
@@ -100,7 +84,6 @@ namespace AcManager.Pages.Lists {
                     _selectNextCar = null;
                     return value;
                 }
-
                 return base.LoadCurrentId();
             }
         }

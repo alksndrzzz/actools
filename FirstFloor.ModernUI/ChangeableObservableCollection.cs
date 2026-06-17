@@ -202,10 +202,12 @@ namespace FirstFloor.ModernUI {
         }
 
         public void RefreshFilter([NotNull] T obj) {
-            var i = IndexOf(obj);
-            if (i >= 0) {
-                OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, obj, obj, i));
-            }
+            ActionExtension.EnsureToRunInMainThreadWhenPossible(() => {
+                var i = IndexOf(obj);
+                if (i >= 0) {
+                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, obj, obj, i));
+                }
+            });
         }
 
         #region Additional methods

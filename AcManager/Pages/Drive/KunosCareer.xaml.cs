@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using AcManager.Controls;
 using AcManager.Controls.Dialogs;
 using AcManager.Controls.Helpers;
 using AcManager.Controls.ViewModels;
@@ -57,7 +58,7 @@ namespace AcManager.Pages.Drive {
         private ScrollViewer _scroll;
 
         private void OnLoaded(object sender, RoutedEventArgs e) {
-            Model.Load();
+            Model.Load(null);
 
             _scroll = ListBox.FindVisualChild<ScrollViewer>();
             if (_scroll != null) {
@@ -121,20 +122,16 @@ namespace AcManager.Pages.Drive {
 
             public KunosCareerManager Manager { get; } = KunosCareerManager.Instance;
 
-            private bool _loaded;
-
-            public override void Load() {
-                base.Load();
-                if (_loaded) return;
-                _loaded = true;
+            public override bool Load(AcListPage listPage) {
+                if (!base.Load(listPage)) return false;
                 Manager.PropertyChanged += Manager_PropertyChanged;
+                return true;
             }
 
-            public override void Unload() {
-                base.Unload();
-                if (!_loaded) return;
-                _loaded = false;
+            public override bool Unload() {
+                if (!base.Unload()) return false;
                 Manager.PropertyChanged -= Manager_PropertyChanged;
+                return true;
             }
 
             private void Manager_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) {

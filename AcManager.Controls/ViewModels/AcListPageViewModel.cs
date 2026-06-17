@@ -34,41 +34,117 @@ namespace AcManager.Controls.ViewModels {
 
         protected AcListPageViewModel([NotNull] IAcManagerNew list, IFilter<T> listFilter) : base(list, listFilter, KeyBase, false) {
             Manager = list;
-            _sortingBy = ValuesStorage.Get<string>($"{Key}.s");
-            if (_sortingBy != null) {
-                Sorting = GetSortingImpl(_sortingBy);
+            var sortingBy = ValuesStorage.Get<string>($"{Key}.s");
+            if (sortingBy != null) {
+                var created = GetSortingImpl(sortingBy);
+                if (created != null) {
+                    _sortingBy = sortingBy;
+                    Sorting = created;
+                }
+            }
+            if (_sortingBy == null) {
+                _sortingBy = string.Empty;
             }
         }
 
-        protected virtual IEnumerable<KeyValuePair<string, Type>> GetSortingTypes() {
-            yield return new KeyValuePair<string, Type>("name", null);
-            yield return new KeyValuePair<string, Type>("age", typeof(SortingAge));
-            yield return new KeyValuePair<string, Type>("rating", typeof(SortingRating));
+        protected sealed class SortingDesc : Displayable, IWithId {
+            public SortingDesc(string id, string displayName, bool withGrouping, Func<AcObjectSorter<T>> factory) {
+                Id = id;
+                WithGrouping = withGrouping;
+                Factory = factory;
+                DisplayName = displayName;
+            }
+            
+            public string Id { get; }
+            
+            public bool WithGrouping { get; }
+            
+            public Func<AcObjectSorter<T>> Factory { get; }
         }
 
-        private class SortingAge : AcObjectSorter<T> {
+        protected virtual IEnumerable<SortingDesc> GetAdditionalSortingTypes() {
+            return null;
+        }
+
+        protected SortingDesc BuildSortingGen(string name, bool usePadding, 
+                string propName, Func<T, T, int> comparer, Func<T, string> groupNameFactory) {
+            return new SortingDesc($@"g.{propName}", name, groupNameFactory != null, () => new SortingGeneric(usePadding, propName, comparer, groupNameFactory));
+        }
+
+        protected SortingDesc BuildSortingNum(string name, bool usePadding, 
+                string propName, Func<T, double> factor /* ascending order */, Func<T, string> groupNameFactory) {
+            return BuildSortingGen(name,  usePadding, propName, (a, b) => (factor(a) - factor(b)).Sign(), groupNameFactory);
+        }
+
+        protected SortingDesc BuildSortingStr(string name, bool usePadding, 
+                string propName, Func<T, string> factor /* ascending order */, Func<T, string> groupNameFactory) {
+            return BuildSortingGen(name,  usePadding, propName, (a, b) => string.Compare(factor(a) ?? string.Empty, factor(b) ?? string.Empty, StringComparison.OrdinalIgnoreCase), groupNameFactory);
+        }
+
+        private class SortingGeneric : AcObjectSorter<T> {
+            private readonly string _propName;
+            private readonly Func<T, T, int> _comparer;
+            private readonly Func<T, string> _groupNameFactory;
+
+            public SortingGeneric(bool usePadding, 
+                    string propName, Func<T, T, int> comparer, Func<T, string> groupNameFactory) : base(usePadding) {
+                _propName = propName;
+                _comparer = comparer;
+                _groupNameFactory = groupNameFactory;
+            }
+
             public override int Compare(T x, T y) {
-                return (y.CreationDateTime - x.CreationDateTime).TotalDays.Sign();
+                return _comparer(x, y);
             }
 
             public override bool IsAffectedBy(string propertyName) {
-                return propertyName == nameof(AcObjectNew.Age);
+                return propertyName == _propName;
+            }
+
+            public override void OnSelected(bool active, bool allowGrouping, AcListPageViewModel<T> parent) {
+                if (active) {
+                    parent.GroupBy(allowGrouping && _groupNameFactory != null ? _propName : null, _groupNameFactory);
+                }
+            }
+        }
+        
+        protected IEnumerable<SortingDesc> GetSortingTypes() {
+            yield return new SortingDesc(string.Empty, "Name", false, null);
+            yield return BuildSortingGen("Age", false, nameof(AcObjectNew.Age), 
+                    (a, b) => (b.CreationDateTime - a.CreationDateTime).TotalDays.Sign(), null);
+            var additional = GetAdditionalSortingTypes();
+            if (additional != null) {
+                yield return null;
+                foreach (var type in additional) {
+                    yield return type;
+                }
+                yield return null;
+            }
+            yield return BuildSortingNum("Rating", false, nameof(AcObjectNew.Rating), a => -(a.Rating ?? -1d), null);
+            yield return BuildSortingNum("Favorites first", true, nameof(AcObjectNew.IsFavourite), a => a.IsFavourite ? 0 : 1, null);
+            if (typeof(T).IsSubclassOf(typeof(AcJsonObjectNew))) {
+                yield return BuildSortingStr("Author", false, nameof(AcJsonObjectNew.Author), a => (a as AcJsonObjectNew)?.Author, a => (a as AcJsonObjectNew)?.Author);
             }
         }
 
-        private class SortingRating : AcObjectSorter<T> {
-            public override int Compare(T x, T y) {
-                return ((y.Rating ?? -1d) - (x.Rating ?? -1d)).Sign();
-            }
-
-            public override bool IsAffectedBy(string propertyName) {
-                return propertyName == nameof(AcObjectNew.Rating);
-            }
-        }
+        private AcObjectSorter<T> _curSortingImpl;
 
         protected AcObjectSorter<T> GetSortingImpl(string key) {
-            var found = GetSortingTypes().FirstOrDefault(x => key == x.Value?.Name).Value;
-            return found != null ? (AcObjectSorter<T>)Activator.CreateInstance(found) : null;
+            if (_curSortingImpl != null) {
+                _curSortingImpl.OnSelected(false, false, this);
+                _curSortingImpl = null;
+            }
+            var pieces = key?.Split('/');
+            var created = pieces == null ? null : GetSortingTypes().NonNull().GetByIdOrDefault(pieces[0])?.Factory?.Invoke();
+            if (created != null) {
+                _curSortingImpl = created;
+                _curSortingImpl.OnSelected(true, pieces.ElementAtOrDefault(1) == @"g", this);
+                UsePaddingForChildObjects = _curSortingImpl.UsePaddingForChildObjects();
+                return _curSortingImpl;
+            }
+            ResetGroping();
+            UsePaddingForChildObjects = true;
+            return null;
         }
 
         public ContextMenu BuildListContextMenu(Action selectMultiple) {
@@ -81,8 +157,8 @@ namespace AcManager.Controls.ViewModels {
                 ValuesStorage.Set($"{Key}.s", mode);
             });
 
-            MenuItem BuildSortingItem(string displaySort, string sortArg) {
-                var ret = new MenuItem { Header = $"Sort by {displaySort}", Command = setSorting, CommandParameter = sortArg, };
+            MenuItem BuildSortingItem(string displaySort, string sortArg, bool withGrouping) {
+                var ret = new MenuItem { Header = displaySort, Command = setSorting, CommandParameter = withGrouping ? $"{sortArg}/g" : sortArg, };
                 ret.SetBinding(MenuItem.IsCheckedProperty, new Binding(nameof(SortingBy)) {
                     Source = this,
                     Converter = EnumToBooleanConverter.Instance,
@@ -91,10 +167,27 @@ namespace AcManager.Controls.ViewModels {
                 return ret;
             }
 
-            var menu = new ContextMenu();
+            var sortMenu = new MenuItem { Header = "Sort by…" };
             foreach (var kv in GetSortingTypes()) {
-                menu.Items.Add(BuildSortingItem(kv.Key, kv.Value?.Name));
+                if (kv == null) {
+                    sortMenu.Items.Add(new Separator());
+                } else {
+                    if (kv.WithGrouping) {
+                        sortMenu.Items.Add(new MenuItem {
+                            Header = kv.DisplayName,
+                            Items = {
+                                BuildSortingItem("Without grouping", kv.Id, false),
+                                BuildSortingItem("With grouping", kv.Id, true),
+                            }
+                        });
+                    } else {
+                        sortMenu.Items.Add(BuildSortingItem(kv.DisplayName, kv.Id, false));
+                    }
+                }
             }
+            
+            var menu = new ContextMenu();
+            menu.Items.Add(sortMenu);
             menu.Items.Add(new Separator());
             menu.Items.Add(new MenuItem { Header = "Copy IDs", Command = copyIDs });
             menu.Items.Add(new MenuItem { Header = "Copy tags", Command = copyTags });

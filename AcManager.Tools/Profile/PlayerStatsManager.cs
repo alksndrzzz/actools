@@ -23,6 +23,8 @@ namespace AcManager.Tools.Profile {
         private const string KeyOverall = "overall";
         private const string KeyDistancePerCarPrefix = "distancePerCar:";
         private const string KeyDistancePerTrackPrefix = "distancePerTrack:";
+        private const string KeyLastUsedCarPrefix = "lastUsedCar:";
+        private const string KeyLastUsedTrackPrefix = "lastUsedTrack:";
         private const string KeyMaxSpeedPerCarPrefix = "maxSpeedPerCar:";
         private const string KeyMaxSpeedPerTrackPrefix = "maxSpeedPerTrack:";
         private const string KeySessionStatsPrefix = "sessionStats:";
@@ -360,12 +362,16 @@ namespace AcManager.Tools.Profile {
 
             car.RaiseMaxSpeedAchievedChanged();
             car.RaiseTotalDrivenDistanceChanged();
+            car.RaiseLastUsedChanged();
         }
 
         private static void UpdateTrackDrivenDistance(SessionStats current) {
             if (current.TrackId == null) return;
-            (TracksManager.Instance.GetWrappedByIdWithLayout(current.TrackId)?.Value as TrackObject)?
-                    .GetLayoutById(current.TrackId)?.RaiseTotalDrivenDistanceChanged();
+            var trackLayout = (TracksManager.Instance.GetWrappedByIdWithLayout(current.TrackId)?.Value as TrackObject)?
+                    .GetLayoutById(current.TrackId);
+            if (trackLayout == null) return;
+            trackLayout.RaiseTotalDrivenDistanceChanged();
+            trackLayout.RaiseLastUsedChanged();
         }
 
         private void Apply(SessionStats current) {
@@ -484,6 +490,22 @@ Gone offroad: {current.GoneOffroad} time(s)");
 
                 return result;
             }));
+        }
+
+        public DateTime GetLastUsedCar(string carId, IStorage storage = null) {
+            return (storage ?? GetMainStorage()).Get(KeyLastUsedCarPrefix + carId, 0L).ToDateTime();
+        }
+
+        public void SetLastUsedCar(string carId, DateTime value, IStorage storage = null) {
+            (storage ?? GetMainStorage()).Set(KeyLastUsedCarPrefix + carId, value.ToUnixTimestamp());
+        }
+
+        public DateTime GetLastUsedTrack(string trackLayoutId, IStorage storage = null) {
+            return (storage ?? GetMainStorage()).Get(KeyLastUsedTrackPrefix + trackLayoutId, 0L).ToDateTime();
+        }
+
+        public void SetLastUsedTrack(string trackLayoutId, DateTime value, IStorage storage = null) {
+            (storage ?? GetMainStorage()).Set(KeyLastUsedTrackPrefix + trackLayoutId, value.ToUnixTimestamp());
         }
 
         public IEnumerable<string> GetCarsIds(IStorage storage = null) {

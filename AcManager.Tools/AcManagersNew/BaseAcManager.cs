@@ -264,14 +264,16 @@ namespace AcManager.Tools.AcManagersNew {
                 } while (anyLoaded);
             }
 
-            IsLoaded = true;
-            ListReady();
+            ActionExtension.EnsureToRunInMainThreadWhenPossible(() => {
+                IsLoaded = true;
+                ListReady();
+                
+                Logging.Write($"[{GetType().Name}] Async loading finished: {WrappersList.Count} objects, {start.ElapsedMilliseconds} ms");
 
-            Logging.Write($"[{GetType().Name}] Async loading finished: {WrappersList.Count} objects, {start.ElapsedMilliseconds} ms");
-
-            if (LoadingReset) {
-                Load();
-            }
+                if (LoadingReset) {
+                    Load();
+                }
+            });
         }
 
         public virtual void Reload([NotNull]string id) {

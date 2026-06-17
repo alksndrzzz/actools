@@ -39,7 +39,7 @@ namespace AcManager.Pages.Lists {
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e) {
-            Model.Load();
+            Model.Load(this);
             if ((Model as LocalViewModel)?.MainList.Count > 20 || (Model as RemoteViewModel)?.MainList.Count > 20) {
                 FancyHints.MultiSelectionMode.Trigger();
             }

@@ -305,6 +305,18 @@
               </mui:PlaceholderTextBlock>
             </c:PropertiesGrid>
 
+            <mui:PlaceholderTextBlock c:PropertiesGrid.Label="Last used:" Placeholder="…"
+                Text="{Binding SelectedTrackConfiguration.LastUsedAt, StringFormat='{}{0:dd/MM/yyyy hh:mm tt}'}"
+                Visibility="{Binding SelectedTrackConfiguration.LastUsedSet, Converter={StaticResource BooleanToVisibilityConverter}}">
+              <FrameworkElement.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="Clear stats from this track" Command="{Binding Path=ClearStatsCommand}" />
+                  <MenuItem Header="Clear stats from this track (all layouts)" Command="{Binding Path=ClearStatsAllCommand}"
+                      Visibility="{Binding SelectedObject.MultiLayoutMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </ContextMenu>
+              </FrameworkElement.ContextMenu>
+            </mui:PlaceholderTextBlock>
+
             <c:BestLapsList TrackId="{Binding SelectedTrackConfiguration.IdWithLayout}" Margin="0 20 0 0" />
           </StackPanel>
 

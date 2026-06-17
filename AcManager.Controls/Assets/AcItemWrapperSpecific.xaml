@@ -139,9 +139,9 @@
             <DataTrigger Binding="{Binding Enabled}" Value="False">
               <Setter Property="Foreground" Value="{DynamicResource WindowTextReadOnly}" TargetName="PART_DisplayNameText" />
             </DataTrigger>
-            <DataTrigger Binding="{Binding NeedsMargin}" Value="True">
+            <!--<DataTrigger Binding="{Binding NeedsMargin}" Value="True">
               <Setter Property="Padding" Value="20 0 0 0" TargetName="PART_DisplayNameText" />
-            </DataTrigger>
+            </DataTrigger>-->
             <DataTrigger Binding="{Binding HasErrors}" Value="True">
               <Setter Property="FontWeight" Value="Bold" TargetName="PART_DisplayNameText" />
               <Setter Property="Visibility" Value="Visible" TargetName="PART_ErrorIcon" />
@@ -205,6 +205,10 @@
             <DataTrigger Binding="{Binding NeedsMargin}" Value="True">
               <Setter Property="Padding" Value="20 0 0 0" TargetName="PART_DisplayNameText" />
             </DataTrigger>
+            <Trigger Value="False" SourceName="PART_Panel" Property="c:AcListPage.UsePaddingForChildObjects">
+              <!-- TODO: copy to other types? -->
+              <Setter Property="Padding" Value="0 0 0 0" TargetName="PART_DisplayNameText" />
+            </Trigger>
             <DataTrigger Binding="{Binding HasErrors}" Value="True">
               <Setter Property="FontWeight" Value="Bold" TargetName="PART_DisplayNameText" />
               <Setter Property="Visibility" Value="Collapsed" TargetName="PART_OriginIcon" />
@@ -272,9 +276,9 @@
             <DataTrigger Binding="{Binding Enabled}" Value="False">
               <Setter Property="Foreground" Value="{DynamicResource WindowTextReadOnly}" TargetName="PART_DisplayNameText" />
             </DataTrigger>
-            <DataTrigger Binding="{Binding NeedsMargin}" Value="True">
+            <!--<DataTrigger Binding="{Binding NeedsMargin}" Value="True">
               <Setter Property="Padding" Value="20 0 0 0" TargetName="PART_DisplayNameText" />
-            </DataTrigger>
+            </DataTrigger>-->
             <DataTrigger Binding="{Binding HasErrors}" Value="True">
               <Setter Property="FontWeight" Value="Bold" TargetName="PART_DisplayNameText" />
               <Setter Property="Visibility" Value="Visible" TargetName="PART_ErrorIcon" />
@@ -336,9 +340,9 @@
             <DataTrigger Binding="{Binding Enabled}" Value="False">
               <Setter Property="Foreground" Value="{DynamicResource WindowTextReadOnly}" TargetName="PART_DisplayNameText" />
             </DataTrigger>
-            <DataTrigger Binding="{Binding NeedsMargin}" Value="True">
+            <!--<DataTrigger Binding="{Binding NeedsMargin}" Value="True">
               <Setter Property="Padding" Value="20 0 0 0" TargetName="PART_DisplayNameText" />
-            </DataTrigger>
+            </DataTrigger>-->
             <DataTrigger Binding="{Binding HasErrors}" Value="True">
               <Setter Property="FontWeight" Value="Bold" TargetName="PART_DisplayNameText" />
               <Setter Property="Visibility" Value="Collapsed" TargetName="PART_OriginIcon" />
@@ -408,9 +412,9 @@
             <DataTrigger Binding="{Binding Enabled}" Value="False">
               <Setter Property="Foreground" Value="{DynamicResource WindowTextReadOnly}" TargetName="PART_DisplayNameText" />
             </DataTrigger>
-            <DataTrigger Binding="{Binding NeedsMargin}" Value="True">
+            <!--<DataTrigger Binding="{Binding NeedsMargin}" Value="True">
               <Setter Property="Padding" Value="20 0 0 0" TargetName="PART_DisplayNameText" />
-            </DataTrigger>
+            </DataTrigger>-->
             <DataTrigger Binding="{Binding HasErrors}" Value="True">
               <Setter Property="FontWeight" Value="Bold" TargetName="PART_DisplayNameText" />
               <Setter Property="Visibility" Value="Collapsed" TargetName="PART_OriginIcon" />
@@ -471,9 +475,9 @@
             <DataTrigger Binding="{Binding Enabled}" Value="False">
               <Setter Property="Foreground" Value="{DynamicResource WindowTextReadOnly}" TargetName="PART_DisplayNameText" />
             </DataTrigger>
-            <DataTrigger Binding="{Binding NeedsMargin}" Value="True">
+            <!--<DataTrigger Binding="{Binding NeedsMargin}" Value="True">
               <Setter Property="Padding" Value="20 0 0 0" TargetName="PART_DisplayNameText" />
-            </DataTrigger>
+            </DataTrigger>-->
             <DataTrigger Binding="{Binding HasErrors}" Value="True">
               <Setter Property="FontWeight" Value="Bold" TargetName="PART_DisplayNameText" />
               <Setter Property="Visibility" Value="Collapsed" TargetName="PART_OriginIcon" />
