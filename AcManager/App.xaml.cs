@@ -469,6 +469,7 @@ namespace AcManager {
             BbCodeBlock.OptionEmojiProvider = new EmojiProvider();
             BbCodeBlock.OptionImageCacheDirectory = FilesStorage.Instance.GetTemporaryFilename("Images");
             BbCodeBlock.OptionEmojiCacheDirectory = FilesStorage.Instance.GetTemporaryFilename("Emoji");
+            BbCodeBlock.OptionVerifyLocalImage = filename => AcRootDirectory.Instance.Value != null && FileUtils.IsAffectedBy(filename, AcRootDirectory.Instance.Value);
 
             BbCodeBlock.AddLinkCommand(new Uri("cmd://csp/enable"), new SimpleLinkCommand(() => {
                 using (var model = PatchSettingsModel.Create()) {
@@ -575,6 +576,13 @@ namespace AcManager {
                     args.Cancel = true;
                 }
             };
+
+            BbCodeBlock.OptionFileNavigateCommand = new DelegateCommand<string>(filename => {
+                if (AcRootDirectory.Instance.Value != null && FileUtils.IsAffectedBy(filename, AcRootDirectory.Instance.Value)
+                    && filename.EndsWith(@".pdf")) {
+                    Process.Start(filename);
+                }
+            });
 
 #if INCLUDE_WORKSHOP
             WorkshopLinkCommands.Initialize();

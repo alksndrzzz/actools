@@ -385,6 +385,8 @@ namespace AcManager.Pages.Drive {
             if (!AllModesList.SequenceEqual(updatedList, _linksComparer)) {
                 AllModesList.ReplaceEverythingBy_Direct(updatedList);
                 ModeTab.LoadPinned();
+            } else if (sender == null) {
+                ModeTab.LoadPinned();
             }
         }
 

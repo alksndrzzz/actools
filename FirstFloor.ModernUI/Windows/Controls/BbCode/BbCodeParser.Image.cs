@@ -60,9 +60,17 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
             private static async void ImageUrlPropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e) {
                 try {
                     var uri = e.NewValue as Uri;
-                    if (uri == null || uri.IsFile /* not supported by design */) return;
+                    if (uri == null) return;
 
                     var cachedImage = (InlineImage)obj;
+                    if (uri.IsFile) {
+                        if (BbCodeBlock.OptionVerifyLocalImage?.Invoke(uri.LocalPath) == true) {
+                            var image = await BetterImage.LoadBitmapSourceAsync(uri.LocalPath, cachedImage._maxSize, cachedImage._maxSize);
+                            cachedImage.Source = image.ImageSource;
+                        }
+                        return;
+                    }
+
                     if (cachedImage._cache != null) {
                         var memoryStream = await cachedImage._cache.HitAsync(uri);
                         if (memoryStream == null) return;

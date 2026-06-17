@@ -14,6 +14,13 @@ using FirstFloor.ModernUI.Windows.Navigation;
 using JetBrains.Annotations;
 
 namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
+    public interface IBbCodeLinkParser {
+        bool TryParseUriWithParameters(string value, bool detectParametersInWebUrls, out Uri uri, out string parameter, out string targetName, out string toolTip);
+
+        [NotNull]
+        string Urlify([NotNull] string value);
+    }
+
     internal partial class BbCodeParser : Parser<Span> {
         private static InlineImageCache _imageCache, _emojiCache;
 
@@ -97,7 +104,10 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
         /// Gets or sets the available navigable commands.
         /// </summary>
         public CommandDictionary Commands { get; set; }
-        
+
+        [CanBeNull]
+        public IBbCodeLinkParser LinkParser { get; set; }
+
         public bool AllowImages { get; set; }
 
         private void ParseTag(string tag, bool start, ParseContext context) {
@@ -160,12 +170,19 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                 if (start) {
                     var token = La(1);
                     if (token.TokenType != BbCodeLexer.TokenAttribute) return;
-                    context.NavigateUri = token.Value.Urlify();
+                    context.NavigateUri = token.Value == null ? null : LinkParser != null ? LinkParser.Urlify(token.Value) : token.Value.Urlify();
                     Consume();
                 } else {
                     context.NavigateUri = null;
                 }
             }
+        }
+
+        private bool TryParseUriWithParameters(string value, bool detectParametersInWebUrls, out Uri uri, out string parameter, out string targetName, out string toolTip) {
+            if (LinkParser != null && LinkParser.TryParseUriWithParameters(value, detectParametersInWebUrls, out uri, out parameter, out targetName, out toolTip)) {
+                return true;
+            }
+            return NavigationHelper.TryParseUriWithParameters(value, detectParametersInWebUrls, out uri, out parameter, out targetName, out toolTip);
         }
 
         private void Parse(Span span) {
@@ -186,7 +203,7 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                         var parent = span;
 
                         // parse uri value for optional parameter and/or target, eg [url=cmd://foo|parameter|target]
-                        if (NavigationHelper.TryParseUriWithParameters(context.NavigateUri, false, out var parsedUri, out var parsedParameter,
+                        if (TryParseUriWithParameters(context.NavigateUri, false, out var parsedUri, out var parsedParameter,
                                 out var parsedTargetName, out var parsedToolTip)) {
                             // if (parsedUri)
                             var link = new Hyperlink { Tag = context.NavigateUri };
@@ -204,6 +221,12 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                                 link.CommandParameter = parsedParameter;
                                 if (parsedTargetName != null) {
                                     link.CommandTarget = _source?.FindName(parsedTargetName) as IInputElement;
+                                }
+                            } else if (parsedUri.IsFile) {
+                                if (parsedToolTip != null && BbCodeBlock.OptionFileNavigateCommand != null) {
+                                    link.Command = BbCodeBlock.OptionFileNavigateCommand;
+                                    link.CommandParameter = parsedUri.LocalPath;
+                                    link.ToolTip = parsedToolTip ?? parsedUri.ToString();
                                 }
                             } else {
                                 link.ToolTip = parsedToolTip ?? parsedUri.ToString();
@@ -272,7 +295,7 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                         } else {
                             toolTip = true;
 
-                            if (AllowImages && NavigationHelper.TryParseUriWithParameters(context.ImageUri, true, out var temporary, out var parameter, out _, out _)) {
+                            if (AllowImages && TryParseUriWithParameters(context.ImageUri, true, out var temporary, out var parameter, out _, out _)) {
                                 try {
                                     url = new Uri(temporary.OriginalString);
                                     if (double.TryParse(parameter, out maxSize)) {
@@ -299,7 +322,7 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                         }
 
                         if (url != null || imageSource != null) {
-                            FrameworkElement image = imageSource != null ? new Image { Source = imageSource } 
+                            FrameworkElement image = imageSource != null ? new Image { Source = imageSource }
                                     : new InlineImage(cache, double.IsNaN(maxSize) ? -1 : (int)maxSize) { ImageUri = url };
 
                             if (toolTip) {

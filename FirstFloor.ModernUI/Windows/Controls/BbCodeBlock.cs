@@ -75,6 +75,12 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
         [CanBeNull]
         public static string OptionImageCacheDirectory;
+        
+        [CanBeNull]
+        public static Func<string, bool> OptionVerifyLocalImage;
+
+        [CanBeNull]
+        public static ICommand OptionFileNavigateCommand;
 
         public static string Encode(string value) {
             return value?.Replace("[", "\\[");
@@ -246,10 +252,11 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         }
 
         [CanBeNull]
-        private static Inline ParseWithParser(string bbCode, FrameworkElement element, ILinkNavigator navigator, bool allowImages) {
+        private static Inline ParseWithParser(string bbCode, FrameworkElement element, ILinkNavigator navigator, [CanBeNull] IBbCodeLinkParser linkParser, bool allowImages) {
             try {
                 return new BbCodeParser(bbCode, element) {
                     Commands = (navigator ?? DefaultLinkNavigator).Commands,
+                    LinkParser = linkParser,
                     AllowImages = allowImages
                 }.Parse();
             } catch (Exception e) {
@@ -266,7 +273,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
         [CanBeNull]
         private static Inline ParseEmojiOrNull(string bbCode, AllowBbCodes allowBbCodes, bool highlightUrls, bool allowImages, FrameworkElement element = null,
-                ILinkNavigator navigator = null) {
+                ILinkNavigator navigator = null, IBbCodeLinkParser linkParser = null) {
             try {
                 var needsEscape = allowBbCodes != AllowBbCodes.All;
                 var bracketIndex = bbCode.IndexOf('[');
@@ -277,7 +284,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
                             return null;
                         }
                     } else if (!ContainsEmoji(bbCode)) {
-                        return ParseWithParser(bbCode, element, navigator, allowImages);
+                        return ParseWithParser(bbCode, element, navigator, linkParser, allowImages);
                     }
                 }
 
@@ -342,7 +349,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
                     bbCode = converted.ToString();
                 }
 
-                return ParseWithParser(bbCode, element, navigator, allowImages);
+                return ParseWithParser(bbCode, element, navigator, linkParser, allowImages);
             } catch (Exception e) {
                 Logging.Warning(e);
                 Logging.Warning(bbCode);
@@ -352,13 +359,13 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
         [NotNull]
         public static Inline ParseEmoji(string bbCode, AllowBbCodes allowBbCodes, bool highlightUrls, FrameworkElement element = null,
-                ILinkNavigator navigator = null) {
-            return ParseEmojiOrNull(bbCode, allowBbCodes, highlightUrls, true, element, navigator) ?? new Run { Text = bbCode };
+                ILinkNavigator navigator = null, IBbCodeLinkParser linkParser = null) {
+            return ParseEmojiOrNull(bbCode, allowBbCodes, highlightUrls, true, element, navigator, linkParser) ?? new Run { Text = bbCode };
         }
 
         [CanBeNull]
-        private static Inline ParseOrNull(string bbCode, FrameworkElement element = null, ILinkNavigator navigator = null) {
-            return bbCode.IndexOf('[') == -1 ? null : ParseWithParser(bbCode, element, navigator, true);
+        private static Inline ParseOrNull(string bbCode, FrameworkElement element = null, ILinkNavigator navigator = null, IBbCodeLinkParser linkParser = null) {
+            return bbCode.IndexOf('[') == -1 ? null : ParseWithParser(bbCode, element, navigator, linkParser, true);
         }
 
         [NotNull]
@@ -400,6 +407,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         private void OnRequestNavigate(object sender, RequestNavigateEventArgs e) {
             try {
                 // perform navigation using the link navigator
+                Logging.Debug("REQ Nav: " + e.Uri);
                 LinkNavigator?.Navigate(e.Uri, this, e.Target);
             } catch (Exception ex) {
                 // display navigation failures
