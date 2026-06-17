@@ -42,6 +42,12 @@ namespace AcManager.Tools.Managers.Online {
                     pinging.Set(TaskbarState.Normal, (double)value / List.Count);
                 }
 
+                void AddPinged() {
+                    var pinged = Interlocked.Increment(ref _pinged);
+                    OnPropertyChanged(nameof(Pinged));
+                    pinging.Set(TaskbarState.Normal, (double)pinged / List.Count);
+                }
+
                 try {
                     _currentPinging = cancellation;
                     OnPropertyChanged(nameof(PingingInProcess));
@@ -52,7 +58,7 @@ namespace AcManager.Tools.Managers.Online {
 
                     for (var i = 0; Pinged < List.Count && i < 10 && !linked.IsCancellationRequested; i++) {
                         if (i > 0) {
-                            Logging.Write("Not everying was pinged in the previous iteration, let’s try again");
+                            Logging.Write("Not everything was pinged in the previous iteration, let’s try again");
                         }
 
                         while (GameWrapper.IsInGame && SettingsHolder.Online.PausePingingInRace) {
@@ -67,7 +73,7 @@ namespace AcManager.Tools.Managers.Online {
                                     if (GameWrapper.IsInGame && SettingsHolder.Online.PausePingingInRace) return;
                                     if (x.Status == ServerStatus.Unloaded) {
                                         await x.Update(ServerEntry.UpdateMode.Lite);
-                                        SetPinged(Pinged + 1);
+                                        AddPinged();
                                         pingedNow++;
                                     }
                                 }).WhenAll(SettingsHolder.Online.PingingSingleSocket ? SettingsHolder.Online.PingConcurrency2 : SettingsHolder.Online.PingConcurrency, linked.Token);

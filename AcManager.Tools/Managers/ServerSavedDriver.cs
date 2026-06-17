@@ -81,6 +81,10 @@ namespace AcManager.Tools.Managers {
             Skins = new Dictionary<string, string>();
         }
 
+        private ServerSavedDriver(IReadOnlyDictionary<string, string> skinsRef) {
+            Skins = skinsRef.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
         private ServerSavedDriver(KeyValuePair<string, IniFileSection> pair) {
             Guid = pair.Key.ApartFromFirst(@"D");
             DriverName = pair.Value.GetNonEmpty("DRIVERNAME") ?? "Unnamed";
@@ -100,10 +104,10 @@ namespace AcManager.Tools.Managers {
         public bool CanBeCloned => true;
 
         public object Clone() {
-            return new ServerSavedDriver {
+            return new ServerSavedDriver(Skins) {
                 Guid = Guid,
                 DriverName = DriverName,
-                TeamName = TeamName
+                TeamName = TeamName,
             };
         }
 
@@ -150,7 +154,7 @@ namespace AcManager.Tools.Managers {
         public static IEnumerable<ServerSavedDriver> Load(string filename) {
             return File.Exists(filename)
                     ? new IniFile(filename, IniFileMode.ValuesWithSemicolons).Where(x => x.Key.Length > 1 && x.Key[0] == 'D')
-                                                                             .Select(x => new ServerSavedDriver(x))
+                            .Select(x => new ServerSavedDriver(x))
                     : new ServerSavedDriver[0];
         }
 
@@ -170,9 +174,7 @@ namespace AcManager.Tools.Managers {
 
         private DelegateCommand _deleteCommand;
 
-        public DelegateCommand DeleteCommand => _deleteCommand ?? (_deleteCommand = new DelegateCommand(() => {
-            Deleted = true;
-        }));
+        public DelegateCommand DeleteCommand => _deleteCommand ?? (_deleteCommand = new DelegateCommand(() => { Deleted = true; }));
 
         public const string DraggableFormat = "Data-ServerSavedDriver";
 

@@ -24,7 +24,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
             if (Mouse.LeftButton == MouseButtonState.Pressed) {
                 PreviewMouseUp += PreventMouseUpEvent;
-                WaitToReactivateHitTestAsync().Ignore();
+                WaitToReactivateHitTestAsync();
             }
 
             SizeChanged += OnSizeChanged;
@@ -50,11 +50,13 @@ namespace FirstFloor.ModernUI.Windows.Controls {
             args.Handled = true;
         }
 
-        private async Task WaitToReactivateHitTestAsync() {
-            while (Mouse.LeftButton == MouseButtonState.Pressed) {
-                await Task.Delay(20);
-            }
-            PreviewMouseUp -= PreventMouseUpEvent;
+        private void WaitToReactivateHitTestAsync() {
+            ActionExtension.EnsureToRunInMainThreadWhenPossible(async () => {
+                while (Mouse.LeftButton == MouseButtonState.Pressed) {
+                    await Task.Delay(20);
+                }
+                PreviewMouseUp -= PreventMouseUpEvent;
+            });
         }
 
         #region Keep track of the last active window to make sure new ones are shown where needed

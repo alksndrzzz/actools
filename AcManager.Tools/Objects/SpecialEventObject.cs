@@ -155,9 +155,11 @@ namespace AcManager.Tools.Objects {
         public double[] PlaceStats {
             get => _placeStats;
             set => Apply(value, ref _placeStats, () => {
-                if (value?.Length == 4) {
+                if (value?.Length == 4 && AiLevels != null) {
                     for (var i = 0; i < 4; ++i) {
-                        AiLevels[i].PlaceStat = value[3 - i];
+                        if (i < AiLevels.Length) {
+                            AiLevels[i].PlaceStat = value[3 - i];
+                        }
                     }
                 }
 

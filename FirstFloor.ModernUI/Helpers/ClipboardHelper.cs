@@ -29,7 +29,7 @@ namespace FirstFloor.ModernUI.Helpers {
         }*/
 
         public static void SetText(string text) {
-            ActionExtension.InvokeInMainThreadAsync(() => {
+            ActionExtension.EnsureToRunInMainThreadWhenPossible(() => {
                 Exception exception = null;
                 for (var i = 0; i < 5; i++) {
                     try {
@@ -40,7 +40,6 @@ namespace FirstFloor.ModernUI.Helpers {
                         exception = e;
                     }
                 }
-
                 NonfatalError.NotifyBackground("Can’t copy text", "No access to clipboard.", exception);
             });
         }

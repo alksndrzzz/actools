@@ -30,7 +30,7 @@ namespace AcManager.Tools.Objects {
             get => _managerDescription;
             set {
                 if (string.IsNullOrWhiteSpace(value)) value = null;
-                if (Equals(value, _trackId)) return;
+                if (Equals(value, _managerDescription)) return;
                 _managerDescription = value;
                 if (Loaded) {
                     OnPropertyChanged();
@@ -45,7 +45,7 @@ namespace AcManager.Tools.Objects {
             get => _webLink;
             set {
                 if (string.IsNullOrWhiteSpace(value)) value = null;
-                if (Equals(value, _trackId)) return;
+                if (Equals(value, _webLink)) return;
                 _webLink = value;
                 if (Loaded) {
                     OnPropertyChanged();

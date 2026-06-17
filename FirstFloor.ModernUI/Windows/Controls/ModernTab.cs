@@ -61,7 +61,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         public event EventHandler<NavigationEventArgs> FrameNavigated;
 
         private ListBox _linkList;
-        
+
         public string PinnedSaveKey { get; set; }
 
         private void SavePinned() {
@@ -239,9 +239,12 @@ namespace FirstFloor.ModernUI.Windows.Controls {
                     var pinned = PinnedLinks.FirstOrDefault(x => x.Source == SelectedSource);
                     if (pinned == null) {
                         Title = pinnable.Title;
-                    } else if (pinned.DisplayName != pinnable.Title) {
-                        pinned.DisplayName = pinnable.Title;
-                        SavePinned();
+                    } else {
+                        Title = null;
+                        if (pinned.DisplayName != pinnable.Title) {
+                            pinned.DisplayName = pinnable.Title;
+                            SavePinned();
+                        }
                     }
                 } else {
                     Title = null;

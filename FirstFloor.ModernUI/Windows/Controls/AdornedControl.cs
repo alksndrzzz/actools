@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -118,11 +119,11 @@ namespace FirstFloor.ModernUI.Windows.Controls {
                         return x + _offsetY;
                     }
                 case VerticalAlignment.Center: {
-                        var adornerHeight = _child.DesiredSize.Height;
-                        var adornedHeight = AdornedElement.ActualHeight;
-                        var x = adornedHeight / 2 - adornerHeight / 2;
-                        return x + _offsetY;
-                    }
+                    var adornerHeight = _child.DesiredSize.Height;
+                    var adornedHeight = AdornedElement.ActualHeight;
+                    var x = adornedHeight / 2 - adornerHeight / 2;
+                    return x + _offsetY;
+                }
                 case VerticalAlignment.Stretch:
                     return 0d;
                 default:
@@ -230,6 +231,23 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
         public static readonly DependencyProperty AvoidUsingScrollContentPresenterProperty =
                 DependencyProperty.Register(nameof(AvoidUsingScrollContentPresenter), typeof(bool), typeof(AdornedControl), new FrameworkPropertyMetadata(true));
+
+        public static readonly DependencyProperty ShowAdornerOnHoverProperty = DependencyProperty.Register(nameof(ShowAdornerOnHover), typeof(bool),
+                typeof(AdornedControl), new PropertyMetadata(false, (o, e) => {
+                    var c = (AdornedControl)o;
+                    c._showAdornerOnHover = (bool)e.NewValue;
+                    if (!c._showAdornerOnHover && c._mouseCounter > 0) {
+                        c._mouseCounter = 0;
+                        c.HideAdorner();
+                    }
+                }));
+
+        private bool _showAdornerOnHover;
+
+        public bool ShowAdornerOnHover {
+            get => _showAdornerOnHover;
+            set => SetValue(ShowAdornerOnHoverProperty, value);
+        }
         #endregion Dependency Properties
 
         #region Commands
@@ -243,6 +261,37 @@ namespace FirstFloor.ModernUI.Windows.Controls {
             DataContextChanged += OnDataContextChanged;
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
+        }
+
+        private int _mouseCounter;
+
+        protected override void OnMouseEnter(MouseEventArgs e) {
+            if (_isLoaded && ++_mouseCounter == 1) {
+                Task.Delay(200).ContinueWithInMainThread(r => {
+                    if (_isLoaded && _mouseCounter > 0) ShowAdorner();
+                });
+            }
+        }
+
+        protected override void OnMouseLeave(MouseEventArgs e) {
+            if (_isLoaded && _mouseCounter != 0 && --_mouseCounter == 0) {
+                Task.Delay(300).ContinueWithInMainThread(r => {
+                    if (_isLoaded && _mouseCounter == 0) HideAdorner();
+                });
+            }
+        }
+
+        private void AdornerOnMouseEnter(object sender, MouseEventArgs e) {
+            // this one shows things instantly
+            if (_isLoaded && ++_mouseCounter == 1) ShowAdorner();
+        }
+
+        private void AdornerOnMouseLeave(object sender, MouseEventArgs e) {
+            if (_isLoaded && _mouseCounter != 0 && --_mouseCounter == 0) {
+                Task.Delay(300).ContinueWithInMainThread(r => {
+                    if (_isLoaded && _mouseCounter == 0) HideAdorner();
+                });
+            }
         }
 
         /// <summary>
@@ -280,7 +329,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         /// Set to 'true' to show the adorner or 'false' to hide the adorner.
         /// </summary>
         public bool IsAdornerVisible {
-            get => GetValue(IsAdornerVisibleProperty)  as bool? == true;
+            get => GetValue(IsAdornerVisibleProperty) as bool? == true;
             set => SetValue(IsAdornerVisibleProperty, value);
         }
 
@@ -328,7 +377,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         /// Skip ScrollContentPresenter and connect only to AdornerDecorator.
         /// </summary>
         public bool AvoidUsingScrollContentPresenter {
-            get => GetValue(AvoidUsingScrollContentPresenterProperty)  as bool? == true;
+            get => GetValue(AvoidUsingScrollContentPresenterProperty) as bool? == true;
             set => SetValue(AvoidUsingScrollContentPresenterProperty, value);
         }
 
@@ -336,7 +385,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
         /// Adorner’s order.
         /// </summary>
         public int Order {
-            get => GetValue(OrderProperty) as  int? ?? 0;
+            get => GetValue(OrderProperty) as int? ?? 0;
             set => SetValue(OrderProperty, value);
         }
 
@@ -467,6 +516,8 @@ namespace FirstFloor.ModernUI.Windows.Controls {
                 if (_adornerLayer != null) {
                     _adorner = new FrameworkElementAdorner(AdornerContent, this, HorizontalAdornerPlacement, VerticalAdornerPlacement,
                             AdornerOffsetX, AdornerOffsetY);
+                    _adorner.MouseEnter += AdornerOnMouseEnter;
+                    _adorner.MouseLeave += AdornerOnMouseLeave;
                     _adornerLayer.Add(_adorner);
                     UpdateAdornerDataContext();
                 }
@@ -484,7 +535,11 @@ namespace FirstFloor.ModernUI.Windows.Controls {
             _adornerLayer.Remove(_adorner);
             _adorner.DisconnectChild();
 
-            _adorner = null;
+            if (_adorner != null) {
+                _adorner.MouseEnter -= AdornerOnMouseEnter;
+                _adorner.MouseLeave -= AdornerOnMouseLeave;
+                _adorner = null;
+            }
             _adornerLayer = null;
         }
 
@@ -495,7 +550,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
             if (_adornerLayer == null || _adorner == null) return;
             try {
                 _adornerLayer.GetType().GetMethod("SetAdornerZOrder", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
-                             .Invoke(_adornerLayer, new object[] { _adorner, Order });
+                        .Invoke(_adornerLayer, new object[] { _adorner, Order });
             } catch {
                 // ignored
             }
@@ -537,7 +592,7 @@ namespace FirstFloor.ModernUI.Windows.Controls {
 
             try {
                 adornerLayer.GetType().GetMethod("SetAdornerZOrder", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
-                             .Invoke(adornerLayer, new object[] { adorner, GetZOrder(p) });
+                        .Invoke(adornerLayer, new object[] { adorner, GetZOrder(p) });
             } catch (Exception) {
                 // ignored
             }

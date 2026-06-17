@@ -115,13 +115,13 @@ namespace AcManager.Tools.Data {
                 try {
                     iniFile = new IniFile(_filename);
                 } catch (Exception e) {
-                    NonfatalError.Notify("Can’t load Kunos career progress", e);
+                    NonfatalError.Notify("Can’t load championship progress", e);
                     return false;
                 }
 
                 Current = iniFile["CAREER"].GetNonEmpty("CURRENT");
                 AiLevel = iniFile["CAREER"].GetDouble("AI_LEVEL", 95d);
-                Entries = iniFile.Where(x => x.Key != "CHAMPS").ToDictionary(
+                Entries = iniFile.Where(x => x.Key != "CHAMPS" && x.Key != "CAREER").ToDictionary(
                         x => x.Key.ToLowerInvariant(),
                         x => new UserChampionshipProgressEntry(
                                 x.Value.GetInt("EVENT", 0),
@@ -145,7 +145,7 @@ namespace AcManager.Tools.Data {
             try {
                 var iniFile = new IniFile(_filename) {
                     ["CAREER"] = {
-                        ["CURRENTSERIES"] = Current,
+                        ["CURRENT"] = Current,
                         ["AI_LEVEL"] = AiLevel
                     }
                 };

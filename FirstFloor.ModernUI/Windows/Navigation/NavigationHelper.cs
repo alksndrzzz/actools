@@ -114,11 +114,12 @@ namespace FirstFloor.ModernUI.Windows.Navigation {
         /// Tries to parse a uri with parameters from given value.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <param name="detectParametersInWebUrl"></param>
         /// <param name="uri">The URI.</param>
         /// <param name="parameter">The parameter.</param>
         /// <param name="targetName">Name of the target.</param>
         /// <returns></returns>
-        public static bool TryParseUriWithParameters(object value, out Uri uri, out string parameter, out string targetName, out string toolTip) {
+        public static bool TryParseUriWithParameters(object value, bool detectParametersInWebUrl, out Uri uri, out string parameter, out string targetName, out string toolTip) {
             uri = value as Uri;
             parameter = null;
             targetName = null;
@@ -127,19 +128,20 @@ namespace FirstFloor.ModernUI.Windows.Navigation {
             if (uri != null) return true;
 
             var valueString = value as string;
-            return TryParseUriWithParameters(valueString, out uri, out parameter, out targetName, out toolTip);
+            return TryParseUriWithParameters(valueString, detectParametersInWebUrl, out uri, out parameter, out targetName, out toolTip);
         }
 
         /// <summary>
         /// Tries to parse a uri with parameters from given string value.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <param name="detectParametersInWebUrls"></param>
         /// <param name="uri">The URI.</param>
         /// <param name="parameter">The parameter.</param>
         /// <param name="targetName">Name of the target.</param>
         /// <param name="toolTip">Hint for Uri.</param>
         /// <returns></returns>
-        public static bool TryParseUriWithParameters(string value, out Uri uri, out string parameter, out string targetName, out string toolTip) {
+        public static bool TryParseUriWithParameters(string value, bool detectParametersInWebUrls, out Uri uri, out string parameter, out string targetName, out string toolTip) {
             uri = null;
             parameter = null;
             targetName = null;
@@ -150,7 +152,13 @@ namespace FirstFloor.ModernUI.Windows.Navigation {
             }
             
             if (value.IsWebUrl()) {
-                uri = new Uri(value, UriKind.Absolute);
+                var i = detectParametersInWebUrls ? value.IndexOf("|", StringComparison.Ordinal) : -1;
+                if (i != -1 && i < value.Length - 1 && char.IsDigit(value[i + 1])) {
+                    parameter = value.Substring(i + 1);
+                    uri = new Uri(value.Substring(0, i), UriKind.Absolute);
+                } else {
+                    uri = new Uri(value, UriKind.Absolute);
+                }
                 return true;
             }
 

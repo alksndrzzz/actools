@@ -14,8 +14,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace AcManager.LargeFilesSharing.Implementations {
-    public abstract class OneDriveUploaderUploaderBase : FileUploaderBase {
-        protected OneDriveUploaderUploaderBase(IStorage storage, string name, string description, bool supportsSigning, bool supportsDirectories) :
+    public abstract class OneDriveUploaderBase : FileUploaderBase {
+        protected OneDriveUploaderBase(IStorage storage, string name, string description, bool supportsSigning, bool supportsDirectories) :
                 base(storage, name,
                         new Uri("/AcManager.LargeFilesSharing;component/Assets/Icons/OneDrive.png", UriKind.Relative),
                         description, supportsSigning, supportsDirectories) {

@@ -53,7 +53,7 @@ namespace AcManager {
                     found = await TryToLoadPackage(langId, package);
                     Logging.Write(found
                             ? $"Package is loaded: {package}"
-                            : $"Failed to load package is loaded: {package}");
+                            : $"Failed to load the package: {package}");
                 }
             }
 

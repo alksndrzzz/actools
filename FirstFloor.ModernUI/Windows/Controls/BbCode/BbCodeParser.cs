@@ -186,7 +186,7 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                         var parent = span;
 
                         // parse uri value for optional parameter and/or target, eg [url=cmd://foo|parameter|target]
-                        if (NavigationHelper.TryParseUriWithParameters(context.NavigateUri, out var parsedUri, out var parsedParameter,
+                        if (NavigationHelper.TryParseUriWithParameters(context.NavigateUri, false, out var parsedUri, out var parsedParameter,
                                 out var parsedTargetName, out var parsedToolTip)) {
                             // if (parsedUri)
                             var link = new Hyperlink { Tag = context.NavigateUri };
@@ -272,7 +272,7 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                         } else {
                             toolTip = true;
 
-                            if (AllowImages && NavigationHelper.TryParseUriWithParameters(context.ImageUri, out var temporary, out var parameter, out _, out _)) {
+                            if (AllowImages && NavigationHelper.TryParseUriWithParameters(context.ImageUri, true, out var temporary, out var parameter, out _, out _)) {
                                 try {
                                     url = new Uri(temporary.OriginalString);
                                     if (double.TryParse(parameter, out maxSize)) {
@@ -299,8 +299,8 @@ namespace FirstFloor.ModernUI.Windows.Controls.BbCode {
                         }
 
                         if (url != null || imageSource != null) {
-                            FrameworkElement image = imageSource != null ?
-                                    new Image { Source = imageSource } : new InlineImage(cache) { ImageUri = url };
+                            FrameworkElement image = imageSource != null ? new Image { Source = imageSource } 
+                                    : new InlineImage(cache, double.IsNaN(maxSize) ? -1 : (int)maxSize) { ImageUri = url };
 
                             if (toolTip) {
                                 image.ToolTip = new ToolTip {

@@ -82,7 +82,7 @@ namespace FirstFloor.ModernUI {
 
                 return base.GetString(name, culture);
             } catch (Exception e) {
-                Logging.Warning(e);
+                Logging.Error($"Fatal resources error: {e}");
                 BasicMode = true;
                 return base.GetString(name, culture);
             }
